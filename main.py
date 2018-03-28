@@ -19,7 +19,6 @@ import re
 def sparsify(x, m, prob):
     mask = tf.distributions.Bernoulli(probs = tf.fill(tf.shape(x)[0:2], prob),
                                       dtype = tf.bool).sample()
-
     mask = tf.expand_dims(mask, 2)
     mask = tf.tile(mask, [1, 1, x.get_shape()[2]])
     mask = tf.cast(tf.logical_and(mask, tf.greater(m, 0)), tf.float32)

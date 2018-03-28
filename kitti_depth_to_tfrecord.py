@@ -139,15 +139,11 @@ def convert_depth_selection(root_dir, output_file):
     config.gpu_options.allow_growth = True
     with tf.Session(config = config) as sess:
         convert(files, output_file, sess, depth_selection = True)
-#convert_depth_selection('/dataset/kitti-depth/depth_selection/val_selection_cropped/groundtruth_depth', '/dataset/kitti-depth/depth_selection/val.tfrecords')
 
 def convert_dataset(root_dir, output_dir):
     #filenames = get_train_paths(root_dir)
 
     shardnum = 1
-    # if os.path.isfile(os.path.join(output_dir, 'shard{}.tfrecords'.format(1))):
-    #     print('WARNING: this operation will overwite exist shard files')
-    #     input("Press Enter to continue...")
     print('Outputting to {}, all files will be overwritten'.format(output_dir))
     input("Press Enter to continue...")
     
@@ -201,83 +197,6 @@ def make_small_dataset(record_dir, output_file, size):
             if i % 50 == 0:
                 print('Wrote {}'.format(i))
         
-    
-    
-convert_dataset('/dataset/kitti-depth/val/2011_09_26_drive_0005_sync',
-                '/dataset/kitti-depth/tfrecords/video/')
 
-def record_parser(ex_str):
-    keys = { 'rgb_bytes': tf.VarLenFeature(tf.string),
-             'd_bytes': tf.VarLenFeature(tf.string),
-             'raw_bytes' : tf.VarLenFeature(tf.string),
-             'seq_id': tf.VarLenFeature(tf.string)}
-    features = tf.parse_single_example(ex_str, features=keys)
-    rgb = tf.cast(tf.image.decode_png(tf.reshape(tf.sparse_tensor_to_dense(features['rgb_bytes'],
-                                                                           default_value=''),
-                                                 ()),
-                                      channels=3),
-                  tf.float32)
-    d = tf.cast(tf.image.decode_png(tf.reshape(tf.sparse_tensor_to_dense(features['d_bytes'],
-                                                                         default_value=''),
-                                               ()),
-                                    channels=1),
-                tf.float32)
-    raw = tf.cast(tf.image.decode_png(tf.reshape(tf.sparse_tensor_to_dense(features['raw_bytes'],
-                                                                           default_value=''),
-                                                 ()),
-                                      channels=1),
-                  tf.float32)    
-
-    return rgb, d, raw, tf.sparse_tensor_to_dense(features['seq_id'], default_value='')
-
-def normalize(rgb, d, raw, seq_id):
-    #rgb = tf.transpose(rgb, perm=[1, 2, 0])
-    rgb = rgb[130:370, 10:1210, :]
-    rgb.set_shape([370-130, 1210-10, 3])
-        
-    d = d[130:370, 10:1210, :]
-    d.set_shape([370-130, 1210-10, 1])
-
-    raw = raw[130:370, 10:1210, :]
-    raw.set_shape([370-130, 1210-10, 1])
-    return rgb, d, raw, seq_id
-
-
-def test():
-    # filenames = ['2011_09_26_drive_0020_sync.tfrecords',
-    #              '2011_09_26_drive_0079_sync.tfrecords']
-    
-    # filenames = [ os.path.join('/dataset/kitti-depth/tfrecords/val/', file)
-    #               for file in filenames ]
-
-    filenames = [ '/dataset/kitti-depth/tfrecords/video/2011_09_26_drive_0005_sync.tfrecords' ]
-    dataset = tf.data.Dataset.from_tensor_slices(filenames)
-    parsed = dataset.interleave(lambda x : tf.data.TFRecordDataset(x).map(record_parser),
-                                 cycle_length = len(filenames),
-                                 block_length = 4)
-    #parsed = dataset.map(record_parser)
-    norm = parsed.map(normalize)
-
-    it = norm.make_one_shot_iterator()
-    rgb, d, raw, sid = it.get_next()
-
-    config = tf.ConfigProto()
-    config.gpu_options.allow_growth = True
-    sess = tf.Session(config=config)
-
-    fig = plt.figure()
-    plt.ion()
-    ax1 = fig.add_subplot(311)
-    ax2 = fig.add_subplot(312)
-    ax3 = fig.add_subplot(313)
-    for i in range(100):
-        rgb_arr, d_arr, raw_arr, sid_bytes = sess.run([rgb, d, raw, sid])
-        ax1.imshow(np.squeeze(rgb_arr/255))
-        ax2.imshow(np.squeeze(d_arr))
-        ax3.imshow(np.squeeze(raw_arr))
-        print(sid_bytes)
-        plt.show()
-        #pdb.set_trace()
-        input('Press ENTER to continue')
-test()
-#make_small_dataset('/dataset/kitti-depth/tfrecords/train/', '/dataset/kitti-depth/tfrecords/small_train.tfrecord', 5000)
+convert_dataset('/path/to/your/data/train/'
+                '/path/to/your/output/directory/')
