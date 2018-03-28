@@ -49,7 +49,7 @@ def main(result_dir, resume_file, resume_epoch, nepochs, f, input_type, model_ty
         test_root = '/dataset/kitti-depth/depth_selection/test_depth_completion_anonymous'
         num_train_examples = len(ld.get_train_paths(test_root + '/velodyne_raw', suffix='png'))
         num_val_examples = num_train_examples
-        make_datasets = lambda mkinpts, bs : ld.make_selection_datasets(mkinpts, test_root, bs)
+        make_datasets = lambda mkinpts, bs : ld.make_selection_datasets(mkinpts, test_root)
     elif dataset == 'kitti_val_selection':
         val_root = '/dataset/kitti-depth/depth_selection/val_selection_cropped'
         num_train_examples = len(ld.get_train_paths(val_root + '/velodyne_raw', suffix='png'))
@@ -76,11 +76,8 @@ def main(result_dir, resume_file, resume_epoch, nepochs, f, input_type, model_ty
         make_inputs = make_raw_frac_inputs
         
     if model_type == 'admm':
-        if propegate_masks:
-            print('Masks will be propegated....')
         def build_admm(m1, d1, m2, d2, is_training):
             return admm.make_admm(m1, d1, m2, d2,
-                                  propegate_masks = propegate_masks,
                                   tv_loss = admm_tv_loss,
                                   num_iters = num_iters, filters = admm_filters,
                                   strides = admm_strides, kernels = admm_kernels)
@@ -221,12 +218,14 @@ def main(result_dir, resume_file, resume_epoch, nepochs, f, input_type, model_ty
 
             while True:
                 try:
+                    start = time.time()
                     (err, pred, g,
                      rgb, m1, d1, m, s, seqid) = sess.run([errors_t, output,
                                                            ground, rgb_t,
                                                            m1_t, d1_t, monitor, summary,
                                                            s_t],
                                                           feed_dict = { is_training : False })
+                    print('{}s to run'.format(time.time() - start))
                     rmses[i] = err['rmse']
                     i = i + 1
                     val_errors.update(err)
